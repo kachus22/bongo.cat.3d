@@ -7,6 +7,9 @@
 
 Hit the bongos like Bongo Cat in 3D! Inspired by https://bongo.cat
 
+## Demo
+https://kachus22.github.io/bongo.cat.3d/
+
 ## About the project
 Bongo Cat 3D is the idea that came up to me for my computer graphics course.
 
