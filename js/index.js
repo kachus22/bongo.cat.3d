@@ -9,13 +9,30 @@ function onWindowResize() {
 }
 window.addEventListener( 'resize', onWindowResize, false );
 
+// Vector for motion
+const ARMS_SPEED = 0.45;
+var armsMovement = [ -ARMS_SPEED, -ARMS_SPEED ]
+
 var statsEnabled = true, container, stats;
 var camera, controls, renderer, scene;
 var mouseX = 0, mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 const CAT_COLOR = 0xFFFFFF;
-const PAWS_COLOR = 0xFE9BA1;
+const PAWS_COLOR = 0xFE9BA1
+
+// AUDIO
+// Create an AudioListener to use sounds.
+const listener = new THREE.AudioListener();
+// Create a global audio source.
+const sound = new THREE.Audio( listener );
+// Create a second global audio source.
+const sound1 = new THREE.Audio( listener );
+// Load a sound and set it as the Audio object's buffer.
+const audioLoader = new THREE.AudioLoader();
+
+// TEXTURES
+// create an TextureLoader to use textures.
 const loader = new THREE.TextureLoader();
 loader.setCrossOrigin('');
 var cat, body, ears, arms, eyes, smile, bongos, legs, table, house;
@@ -71,20 +88,20 @@ function init() {
   light2.position.multiplyScalar( 1.3 );
   scene.add( light2 );
 
-  const light3 = new THREE.DirectionalLight( 0xff0000, 1 );
-  light3.position.set( 60, 150, -120 );
-  light3.position.multiplyScalar( 1.3 );
-  light3.castShadow = true;
-  light3.intensity = 1.4;
-  light3.shadow.mapSize.width = 1024;
-  light3.shadow.mapSize.height = 1024;
+  // const light3 = new THREE.DirectionalLight( 0xff0000, 1 );
+  // light3.position.set( 60, 150, -120 );
+  // light3.position.multiplyScalar( 1.3 );
+  // light3.castShadow = true;
+  // light3.intensity = 1.4;
+  // light3.shadow.mapSize.width = 1024;
+  // light3.shadow.mapSize.height = 1024;
 
-  light3.shadow.camera.left = - d;
-  light3.shadow.camera.right = d;
-  light3.shadow.camera.top = d;
-  light3.shadow.camera.bottom = - d;
-  light3.shadow.camera.far = 1000;
-  scene.add( light3 );
+  // light3.shadow.camera.left = - d;
+  // light3.shadow.camera.right = d;
+  // light3.shadow.camera.top = d;
+  // light3.shadow.camera.bottom = - d;
+  // light3.shadow.camera.far = 1000;
+  // scene.add( light3 );
 
   const light4 = new THREE.DirectionalLight( 0xff0000, 1 );
   light4.position.set( 80, 80, -80 );
@@ -187,8 +204,24 @@ function render() {
   camera.lookAt( scene.position );
   // controls.update();
   // console.log(camera.position);
-  arms[0].rotation.x = Math.PI * 0.5;
+  // arms[0].rotation.x = Math.PI * 0.5;
+  
+  movement(0);
+  movement(1);
+
   renderer.render( scene, camera );
+}
+
+function movement(index) {
+  if(arms[index].rotation.x <= Math.PI * 0.5 && arms[index].rotation.x >= 0.4) {
+    arms[index].rotation.x += armsMovement[index];
+  }
+
+  if(arms[index].rotation.x < 0.4) {
+    arms[index].rotation.x = 0.4;
+  } else if(arms[index].rotation.x > Math.PI * 0.5) {
+    arms[index].rotation.x = Math.PI * 0.5 ;
+  }
 }
       
 
@@ -516,6 +549,8 @@ function buildTrees() {
     let randomX = -1 * (Math.floor(Math.random() * 2000) + 800);
     let randomZ = Math.floor(Math.random() * 4000) + 700 * randomSign();
     newTree.position.set(randomX, 0, randomZ);
+    newTree.castShadow = true;
+    newTree.receiveShadow = true;
     scene.add(newTree);
   }
 
@@ -524,6 +559,8 @@ function buildTrees() {
     let randomX = -1 * (Math.floor(Math.random() * 2000) + 800);
     let randomZ = (Math.floor(Math.random() * 4000) + 1200) * -1;
     newTree.position.set(randomX, 0, randomZ);
+    newTree.castShadow = true;
+    newTree.receiveShadow = true;
     scene.add(newTree);
   }
 
@@ -532,6 +569,8 @@ function buildTrees() {
     let randomX = (Math.floor(Math.random() * 1000) + 400);
     let randomZ = (Math.floor(Math.random() * 2000) + 1000) * -1;
     newTree.position.set(randomX, 0, randomZ);
+    newTree.castShadow = true;
+    newTree.receiveShadow = true;
     scene.add(newTree);
   }
 }
@@ -542,8 +581,10 @@ function buildTree() {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set( 1, 4 );
-  const material = new THREE.MeshPhongMaterial( { map: texture } );
+  const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 0.8 } );
   let tree = new THREE.Mesh(geometry, material);
+  tree.castShadow = true;
+  tree.receiveShadow = true;
   let leaves = buildTreeLeaves();
   tree.add(leaves);
   return tree;
@@ -589,3 +630,69 @@ function buildTreeLeavesRandom() {
 function randomSign() {
   return -1 + Math.round(Math.random()) * 2;
 }
+
+// Function to play bongo 0 sound.
+function playBongo0() {
+  audioLoader.load( 'sounds/bongo0.mp3', function( buffer ) {
+    sound.setBuffer( buffer );
+    sound.setLoop( false );
+    sound.setVolume( 0.5 );
+    sound.play();
+  });
+}
+
+// Function to stop bongo 0 sound.
+function stopBongo0() {
+  audioLoader.load( 'sounds/bongo0.mp3', function( buffer ) {
+    sound.setBuffer( buffer );
+    sound.stop();
+  });
+}
+
+// Function to play bongo 1 sound.
+function playBongo1() {
+  audioLoader.load( 'sounds/bongo1.mp3', function( buffer ) {
+    sound1.setBuffer( buffer );
+    sound1.setLoop( false );
+    sound1.setVolume( 0.5 );
+    sound1.play();
+  });
+}
+
+// Function to stop bongo 1 sound.
+function stopBongo1() {
+  audioLoader.load( 'sounds/bongo1.mp3', function( buffer ) {
+    sound1.setBuffer( buffer );
+    sound1.stop();
+  });
+}
+
+// Function to handle keyboard events.
+// Specifically when the key is pressed
+function handleKeyDown(event) {
+  console.log(event.keyCode);
+  console.log(arms[0].rotation.x)
+  if (event.keyCode === 65) { //64 is "a"
+    armsMovement[1] = ARMS_SPEED;
+    playBongo1();
+  } else if (event.keyCode === 68) {
+    armsMovement[0] = ARMS_SPEED;
+    playBongo0();
+  }
+}
+
+// Function to handle keyboard events.
+// Specifically when the key is depressed :(
+function handleKeyUp(event) {
+  if (event.keyCode === 65) { // 'a' was pressed
+    armsMovement[1] = -ARMS_SPEED;
+    stopBongo1();
+    
+  } else if (event.keyCode === 68) { // 'd' was pressed
+    armsMovement[0] = -ARMS_SPEED;
+    stopBongo0();
+  }
+}
+
+window.addEventListener('keydown', handleKeyDown, false);
+window.addEventListener('keyup', handleKeyUp, false);
