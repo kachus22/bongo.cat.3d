@@ -13,7 +13,7 @@ https://kachus22.github.io/bongo.cat.3d/
 ## About the project
 Bongo Cat 3D is the idea that came up to me for my computer graphics course.
 
-The objective is to create a scene where there is a 3D model of the cat 🐱 (using primitive forms), a table with bongos on top of it (both with textures). Then it will have light and shadows to fulfill the project requirements. Finally, it will let the user play the bongos pressing keys (keys TBD).
+The objective is to create a scene where there is a 3D model of the cat 🐱 (using primitive forms), a table with bongos on top of it (both with textures). Then it will have light and shadows to fulfill the project requirements. Finally, it will let the user play the bongos pressing keys ('A' and 'D').
 
 
 ## About the meme
