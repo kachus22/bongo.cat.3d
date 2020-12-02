@@ -10,6 +10,8 @@ var camera, controls, renderer, scene;
 var mouseX = 0, mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
+
+const GLOBAL_UPSCALE = 5;
 const CAT_COLOR = 0xFFFFFF;
 const PAWS_COLOR = 0xFE9BA1
 
@@ -27,13 +29,7 @@ const audioLoader = new THREE.AudioLoader();
 // create an TextureLoader to use textures.
 const loader = new THREE.TextureLoader();
 loader.setCrossOrigin('');
-var cat, body, ears, arms, eyes, smile, bongos, legs, table, house;
-
-const ballPosition = new THREE.Vector3( 0, - 45, 0 );
-const ballSize = 60; //40
-
-let sphere;
-let object;
+var cat, body, ears, arms, eyes, smile, bongos, legs, table, house, lamppost;
 
 init();
 animate();
@@ -47,88 +43,43 @@ function init() {
   // Create a new Three.js scene
   scene = new THREE.Scene();
   scene.background = new THREE.Color( 0xd8b365 );
-  scene.fog = new THREE.Fog( 0xd8b365, 500, 10000 );
+  scene.fog = new THREE.Fog( 0xd8b365, 300, 1800 );
 
   // CAMERA
   // Create a camera so we can view the scene
   camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
-  camera.position.set( 800, 350, 1500 );
+  camera.position.set( 80, -100, 150 );
 
   // LIGHTS
-  const ambientLight = new THREE.AmbientLight( 0x666666 );
-  // ambientLight.intensity = 0.2;
+  // Add initial ambient light to set the tone for the scene.
+  const ambientLight = new THREE.AmbientLight( 0xEAEAEA );
+  // A bit less intese to make it appear a bit dark (starting sunset).
+  ambientLight.intensity = 0.75;
   scene.add( ambientLight );
 
-  const light = new THREE.DirectionalLight( 0xdfebff, 1 );
-  light.position.set( 60, 150, -120 );
-  light.position.multiplyScalar( 1.3 );
-  light.castShadow = true;
-  // light.intensity = 0.9;
-  light.shadow.mapSize.width = 1024;
-  light.shadow.mapSize.height = 1024;
-
-  const d = 300;
-  light.shadow.camera.left = - d;
-  light.shadow.camera.right = d;
-  light.shadow.camera.top = d;
-  light.shadow.camera.bottom = - d;
-  light.shadow.camera.far = 1000;
-  scene.add( light );
-
-  const light2 = new THREE.DirectionalLight( 0xff0000, 1 );
-  light2.position.set( 20, 0, -100 );
-  light2.position.multiplyScalar( 1.3 );
-  scene.add( light2 );
-
-  // const light3 = new THREE.DirectionalLight( 0xff0000, 1 );
-  // light3.position.set( 60, 150, -120 );
-  // light3.position.multiplyScalar( 1.3 );
-  // light3.castShadow = true;
-  // light3.intensity = 1.4;
-  // light3.shadow.mapSize.width = 1024;
-  // light3.shadow.mapSize.height = 1024;
-
-  // light3.shadow.camera.left = - d;
-  // light3.shadow.camera.right = d;
-  // light3.shadow.camera.top = d;
-  // light3.shadow.camera.bottom = - d;
-  // light3.shadow.camera.far = 1000;
-  // scene.add( light3 );
-
-  const light4 = new THREE.DirectionalLight( 0xff0000, 1 );
-  light4.position.set( 80, 80, -80 );
-  light4.position.multiplyScalar( 2.3 );
-  light4.castShadow = true;
-  light4.intensity = 1.4;
-  light4.shadow.mapSize.width = 1024;
-  light4.shadow.mapSize.height = 1024;
-
-  light4.shadow.camera.left = - d;
-  light4.shadow.camera.right = d;
-  light4.shadow.camera.top = d;
-  light4.shadow.camera.bottom = - d;
-  light4.shadow.camera.far = 1000;
-  scene.add( light4 );
-
-  // SPHERE
-  const ballGeo = new THREE.SphereBufferGeometry( ballSize, 32, 16 );
-  const ballMaterial = new THREE.MeshLambertMaterial();
-
-  sphere = new THREE.Mesh( ballGeo, ballMaterial );
-  sphere.castShadow = true;
-  sphere.receiveShadow = true;
-  sphere.visible = false;
-  scene.add( sphere );
+  const sunlight = new THREE.DirectionalLight( 0xff0000, 1 );
+  sunlight.position.set( 220, 250, -300 );
+  sunlight.intensity = 2.5;
+  sunlight.castShadow = true;
+  // Quick way to put light further apart.
+  sunlight.position.multiplyScalar( 2.3 );
+  // Measurements used to define a (invisible) box which
+  // is where light will be able to hit.
+  sunlight.shadow.camera.left = -1200;
+  sunlight.shadow.camera.right = 1200;
+  sunlight.shadow.camera.top = 800;
+  sunlight.shadow.camera.bottom = - 500;
+  sunlight.shadow.camera.far = 2800;
+  scene.add( sunlight );
 
   buildObjects();
-
   // RENDERER
   // Create the Three.js renderer and attach it to our canvas
   renderer = new THREE.WebGLRenderer( { antialias: true } );
   // Set the viewport size
   renderer.setSize( window.innerWidth, window.innerHeight );
   renderer.setPixelRatio( window.devicePixelRatio );
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  // renderer.outputEncoding = THREE.sRGBEncoding;
   // Turn on shadows
   renderer.shadowMap.enabled = true;
   // Attach the Three.js renderer
@@ -150,8 +101,8 @@ function init() {
   controls.enablePan = false;
   controls.enableDamping = false;
   controls.maxPolarAngle = Math.PI * 0.5;
-  controls.minDistance = 800;
-  controls.maxDistance = 4000;
+  controls.minDistance = 300;
+  controls.maxDistance = 1050;
   controls.update();
 }
 
@@ -172,11 +123,10 @@ function animate() {
 
 // Function to render the scene
 function render() {
-  sphere.position.copy( ballPosition );
   camera.lookAt( scene.position );
   // Handle arm0 movement.
   movement(0);
-  // Handle arm1 movement.
+  // // Handle arm1 movement.
   movement(1);
   // Render the scene.
   renderer.render( scene, camera );
@@ -187,17 +137,20 @@ function movement(index) {
   const lowerPosition = Math.PI * 0.5;
   const upperPosition = 0.4;
 
-  // Move the arm by incrementing (positively or negatively) the rotation in the X axis,
-  // until it reaches the limit established.
-  if(arms[index].rotation.x <= lowerPosition && arms[index].rotation.x >= upperPosition) {
-    arms[index].rotation.x += armsMovement[index];
-  }
+  // Just to check if it exists.
+  if(arms) {
+    // Move the arm by incrementing (positively or negatively) the rotation in the X axis,
+    // until it reaches the limit established.
+    if(arms[index].rotation.x <= lowerPosition && arms[index].rotation.x >= upperPosition) {
+      arms[index].rotation.x += armsMovement[index];
+    }
 
-  // Once it reaches below the limit established keep it there no matter what.
-  if(arms[index].rotation.x < upperPosition) {
-    arms[index].rotation.x = upperPosition;
-  } else if(arms[index].rotation.x > lowerPosition) {
-    arms[index].rotation.x = lowerPosition;
+    // Once it reaches below the limit established keep it there no matter what.
+    if(arms[index].rotation.x < upperPosition) {
+      arms[index].rotation.x = upperPosition;
+    } else if(arms[index].rotation.x > lowerPosition) {
+      arms[index].rotation.x = lowerPosition;
+    }
   }
 }
 
@@ -210,11 +163,12 @@ function movement(index) {
 // Function to create each object to be used in the scene.
 function buildObjects() {
   buildGround();
+  buildTrees();
+  buildLamppost();
   buildCat();
   buildTable();
   buildBongos();
   transformObjects();
-  buildTrees();
 }
 
 // Function to transform each object to be used in the scene,
@@ -222,23 +176,18 @@ function buildObjects() {
 // Translates all the objects in the right position.
 // Scales all the objects to look in a good size due the camera distance.
 function transformObjects() {
-  scaleObject(table, 30);
-  scaleObject(cat, 30);
-  scaleObject(bongos, 30);
-  scene.add(table);
-  scene.add(cat);
-  scene.add(bongos);
-  cat.position.y = -40;
-  bongos.position.y = -40;
-  table.position.y = -140;
-  table.position.z = 310;
+  scaleObject(table, GLOBAL_UPSCALE);
+  scaleObject(cat, GLOBAL_UPSCALE);
+  scaleObject(bongos, GLOBAL_UPSCALE);
+  scaleObject(lamppost, GLOBAL_UPSCALE);
+  lamppost.position.x = 130;
 }
 
 // Helper function to scale an object by an amount;
 function scaleObject(object, amount) {
-  object.scale.x = amount;
-  object.scale.y = amount;
-  object.scale.z = amount;
+  if(object) {
+    object.scale.multiplyScalar(amount);
+  }
 }
 
 
@@ -255,6 +204,7 @@ function buildCat() {
   buildEars();
   buildEyes();
   buildSmile();
+  scene.add(cat);
 }
 
 function buildBody() {
@@ -275,7 +225,7 @@ function buildBody() {
   const material = new THREE.MeshLambertMaterial( { color: CAT_COLOR } );
   body = new THREE.Mesh( geometry, material );
   body.position.set(0, 0, 0);
-  body.receiveShadow = true;
+  // body.receiveShadow = true;
   body.castShadow = true;
   cat.add(body);
 }
@@ -287,7 +237,7 @@ function buildEars() {
   ears.push( new THREE.Mesh( geometry, material ) );
   ears[0].position.set(-2.7, 6.1, 0);
   ears[0].rotation.z = 0.4;
-  ears[0].receiveShadow = true;
+  // ears[0].receiveShadow = true;
   ears[0].castShadow = true;
   ears.push( ears[0].clone() )
   ears[1].position.set(2.7, 6.1, 0);
@@ -300,7 +250,7 @@ function buildLimb() {
   const geometry = new THREE.CylinderGeometry( 1.2, 1.6, 4, 32 );
   const material = new THREE.MeshLambertMaterial( { color: CAT_COLOR } );
   const sleeve = new THREE.Mesh( geometry, material );
-  sleeve.receiveShadow = true;
+  // sleeve.receiveShadow = true;
   sleeve.castShadow = true;
   return sleeve;
 }
@@ -311,7 +261,7 @@ function buildLimbSmallEnd() {
   const hand = new THREE.Mesh( geometry, material );
   hand.rotation.x = Math.PI * 1.5  ;
   hand.position.y = 2;
-  hand.receiveShadow = true;
+  // hand.receiveShadow = true;
   hand.castShadow = true;
   return hand;
 }
@@ -322,7 +272,7 @@ function buildLimbBigEnd() {
   const elbow = new THREE.Mesh( geometry, material );
   elbow.rotation.x = Math.PI * 0.5  ;
   elbow.position.y = -2;
-  elbow.receiveShadow = true;
+  // elbow.receiveShadow = true;
   elbow.castShadow = true;
   return elbow;
 }
@@ -335,7 +285,7 @@ function buildPaws() {
   sphere.position.set(0, 2, 0.8);
   sphere.scale.x = 0.9;
   paws[0].add( sphere );
-  paws[0].receiveShadow = true;
+  // paws[0].receiveShadow = true;
   paws[0].castShadow = true;
   geometry = new THREE.SphereGeometry( 0.35, 32, 32, 0, Math.PI );
   sphere = new THREE.Mesh( geometry, material );
@@ -367,7 +317,7 @@ function buildPawsBottom() {
   sphere.scale.x = 1.1;
   sphere.rotation.x = Math.PI*0.5;
   paws[0].add( sphere );
-  paws[0].receiveShadow = true;
+  // paws[0].receiveShadow = true;
   paws[0].castShadow = true;
   geometry = new THREE.SphereGeometry( 0.65, 32, 32, 0, Math.PI );
   sphere = new THREE.Mesh( geometry, material );
@@ -425,7 +375,7 @@ function buildLegs() {
   const x = 3.5;
   const y = -5.5;
   const z = 4.5;
-  const xRotation = Math.PI * 1.55;
+  const xRotation = Math.PI * 1.50;
   const zRotation = -0.5;
   legs = []
   legs.push( new THREE.Object3D() );
@@ -493,33 +443,31 @@ function buildSmile() {
 // Function to build the table.
 // Using a box geometries as its base.
 function buildTable() {
-  const geometry = new THREE.BoxGeometry(20, 10, 0.8);
+  const geometry = new THREE.BoxGeometry(20, 0.8, 10);
   // Add a wood texture.
   const texture = loader.load('img/wood-texture.jpg');
   // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
   table = new THREE.Mesh(geometry, material);
   // Set it in the right position to be in front of the cat.
-  table.position.set( 0, -3.36, 11);
-  table.rotation.x = Math.PI * 0.5;
+  table.position.set( 0, -17, 55);
   table.castShadow = true;
   table.receiveShadow = true;
   buildTableLegs();
+  scene.add(table);
 }
 
 // Function to build the table legs.
 // Using a box geometries as its base.
 function buildTableLegs() {
-  const geometry = new THREE.BoxGeometry(10, 3.2, 1);
+  const geometry = new THREE.BoxGeometry(1, 3.2, 10);
   // Add a wood texture.
   const texture = loader.load('img/wood-texture.jpg');
   // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
   const leg = new THREE.Mesh(geometry, material);
   // Set it in the one side of the table.
-  leg.position.set( 9, 0, 2);
-  leg.rotation.x = Math.PI * 0.5;
-  leg.rotation.y = Math.PI * 0.5;
+  leg.position.set( 9, -2, 0);
   leg.castShadow = true;
   leg.receiveShadow = true;
   // Clone the object and reposition it in it's X component.
@@ -567,6 +515,7 @@ function buildBongos() {
   bongos.add( bongo1 );
   bongos.add( bongo2 );
   buildBongosBridge();
+  scene.add(bongos);
 }
 
 // Function to build the thingy that connects the bongos.
@@ -578,9 +527,81 @@ function buildBongosBridge() {
   // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial({ map: texture, bumpMap: texture, bumpScale: 1, side: THREE.DoubleSide });
   const bridge = new THREE.Mesh(geometry, material);
+  bridge.castShadow = true;
+  bridge.receiveShadow = true;
   // Position it right in the middle of the bongos.
   bridge.position.set( 0, -1.3, 8);
   bongos.add( bridge );
+}
+
+/*
+ * LAMPPOST
+ * Functions used to create a lamppost.
+ */
+
+function buildLamppost() {
+  lamppost = new THREE.Object3D();
+  const numPoints = 100;
+  const start = new THREE.Vector3(0, -10, 0);
+  const middle = new THREE.Vector3(0, 60, 0);
+  const end = new THREE.Vector3(-15, 30, 0);
+  const path = new THREE.QuadraticBezierCurve3(start, middle, end);
+  const tube = new THREE.TubeGeometry(path, numPoints, 0.75, 20, false);
+  const material = new THREE.MeshPhongMaterial( { color: 0x00000 } );
+  const mesh = new THREE.Mesh(tube, material);
+  mesh.receiveShadow = true;
+  mesh.castShadow = true;
+  lamppost.castShadow = true;
+  lamppost.receiveShadow = true;
+  lamppost.add(mesh);
+  buildLamppostTop();
+  scene.add(lamppost);
+}
+
+function buildLamppostTop() {
+  const geometry = new THREE.CylinderGeometry( 0.75, 3.4, 4, 32, 32, true );
+  // Make it DoubleSide so it's visible inside.
+  const materials = new THREE.MeshPhongMaterial( { color: 0x00000, side: THREE.DoubleSide } );
+  // Create the top and set it's position and other values.
+  const top = new THREE.Mesh( geometry, materials );
+  top.position.set( -15, 30, 0);
+  top.rotation.z = -Math.PI * 0.15;
+  top.receiveShadow = true;
+  top.castShadow = true;
+  lamppost.add(top);
+  buildLamppostBulb();
+}
+
+function buildLamppostBulb() {
+  const geometry = new THREE.SphereGeometry( 2, 32, 32, -Math.PI * 0.5, Math.PI );
+  const material = new THREE.MeshLambertMaterial( { color: 0xFFFFFF } );
+  // Create the top and set it's position and other values.
+  const bulb = new THREE.Mesh( geometry, material );
+  bulb.rotation.z = Math.PI * 0.32;
+  bulb.position.set( -15.3, 28.9, 0);
+  bulb.receiveShadow = true;
+  bulb.castShadow = true;
+  lamppost.add(bulb);
+  addLamppostLight();
+}
+
+function addLamppostLight() {
+  // Add a yellow light, with intensity a bit low intensity,
+  // that only covers a small radius and a bit attenuated due to penumbra.
+  const spotLight = new THREE.SpotLight( 0xfcdb03, 0.9, 0, Math.PI * 0.13, 0.2 );
+  spotLight.position.set( 55, 145, 0 );
+
+  spotLight.castShadow = true;
+  spotLight.shadow.mapSize.width = 1024;
+  spotLight.shadow.mapSize.height = 1024;
+  spotLight.shadow.camera.near = 50;
+  spotLight.shadow.camera.far = 500;
+  spotLight.shadow.camera.fov = 35;
+
+  scene.add( spotLight );
+
+  const spotLightHelper = new THREE.SpotLightHelper( spotLight );
+  scene.add( spotLightHelper );
 }
 
 /*
@@ -595,10 +616,11 @@ function buildGround() {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set( 25, 25 );
   texture.anisotropy = 16;
-  texture.encoding = THREE.sRGBEncoding;
+  texture.encoding = THREE.BasicDepthPacking;
   const material = new THREE.MeshLambertMaterial( { map: texture } );
-  let ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 20000, 20000 ), material );
-  ground.position.y = - 250;
+  let ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 3000, 3000 ), material );
+  ground.position.y = - 35;
+  // Rotate plane so it simulates the ground.
   ground.rotation.x = - Math.PI / 2;
   ground.receiveShadow = true;
   scene.add( ground );
@@ -615,44 +637,42 @@ function buildGround() {
 // and stays at ground level.
 function buildTrees() {
   // Generate a random number to determine the amount of trees.
-  const treesToAdd = Math.floor(Math.random() * 8) + 4;
+  const treesToAdd = Math.floor(Math.random() * 5) + 3;
   // Generate trees to the left of the screen (cat's right side);
   for( let i = 0; i <= treesToAdd; i++) {
-    let newTree = buildTree();
-    let randomX = -1 * (Math.floor(Math.random() * 2000) + 800);
-    let randomZ = Math.floor(Math.random() * 4000) + 700 * randomSign();
-    newTree.position.set(randomX, 0, randomZ);
-    newTree.castShadow = true;
-    newTree.receiveShadow = true;
+    let randomX = -1 * (Math.floor(Math.random() * 550) + 80);
+    let randomZ = (Math.floor(Math.random() * 400) + 70) * randomSign();
+    let newTree = buildTree(randomX, randomZ);
     scene.add(newTree);
   }
 
   for( let i = 0; i <= treesToAdd; i++) {
-    let newTree = buildTree();
-    let randomX = -1 * (Math.floor(Math.random() * 2000) + 800);
-    let randomZ = (Math.floor(Math.random() * 4000) + 1200) * -1;
-    newTree.position.set(randomX, 0, randomZ);
-    newTree.castShadow = true;
-    newTree.receiveShadow = true;
+    let randomX = -1 * (Math.floor(Math.random() * 550) + 80);
+    let randomZ = (Math.floor(Math.random() * 400) + 180) * -1;
+    let newTree = buildTree(randomX, randomZ);
     scene.add(newTree);
   }
 
   // Generate trees behind the cat
   for( let i = 0; i <= treesToAdd / 2; i++) {
-    let newTree = buildTree();
-    let randomX = (Math.floor(Math.random() * 1000) + 400);
-    let randomZ = (Math.floor(Math.random() * 2000) + 1000) * -1;
-    newTree.position.set(randomX, 0, randomZ);
-    newTree.castShadow = true;
-    newTree.receiveShadow = true;
+    let randomX = (Math.floor(Math.random() * 400) + 40) * randomSign();
+    let randomZ = (Math.floor(Math.random() * 500) + 190) * -1;
+    let newTree = buildTree(randomX, randomZ);
+    scene.add(newTree);
+  }
+  // Generate trees to the right of the screen (cat's left side);
+  for( let i = 0; i <= treesToAdd; i++) {
+    let randomX = (Math.floor(Math.random() * 550) + 80);
+    let randomZ = (Math.floor(Math.random() * 400) + 220) * randomSign();
+    let newTree = buildTree(randomX, randomZ);
     scene.add(newTree);
   }
 }
 
  // Function to build a tree.
  // Using a box geometry as its base.
-function buildTree() {
-  const geometry = new THREE.BoxGeometry(220, 800, 180);
+function buildTree(x, z) {
+  const geometry = new THREE.BoxGeometry(7.34, 26.67, 6);
   // Repeat the texture to fill everything, and repeat it in the Y component to make it look better.
   const texture = loader.load('img/tree-texture.jpg');
   texture.wrapS = THREE.RepeatWrapping;
@@ -663,6 +683,8 @@ function buildTree() {
   let tree = new THREE.Mesh(geometry, material);
   tree.castShadow = true;
   tree.receiveShadow = true;
+  tree.position.set(x, 32, z);
+  scaleObject(tree, 5);
   let leaves = buildTreeLeaves();
   tree.add(leaves);
   return tree;
@@ -671,7 +693,7 @@ function buildTree() {
 // Function to build a tree's leaves.
 // Using a box geometry as the base on top of the tree log.
 function buildTreeLeaves() {
-  const geometry = new THREE.BoxGeometry(520, 500, 380);
+  const geometry = new THREE.BoxGeometry(17.34, 16.67, 12.67);
   // Repeat the texture to fill everything, and keep the same sizes in this case.
   const texture = loader.load('img/leave-texture.jpg');
   texture.wrapS = THREE.RepeatWrapping;
@@ -680,7 +702,7 @@ function buildTreeLeaves() {
   // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
   let leaves = new THREE.Mesh(geometry, material);
-  leaves.position.y = 380;
+  leaves.position.y = 12.67;
   leaves.castShadow = true;
   leaves.receiveShadow = true;
   const leavesToAdd = Math.floor(Math.random() * 8) + 2;
@@ -697,7 +719,7 @@ function buildTreeLeavesRandom() {
   let randomX = Math.floor(Math.random() * 300) + 100;
   let randomY = Math.floor(Math.random() * 400) + 250;
   let randomZ = Math.floor(Math.random() * 400) + 200;
-  const geometry = new THREE.BoxGeometry(randomX, randomY, randomZ);
+  const geometry = new THREE.BoxGeometry(randomX / 30, randomY / 30, randomZ / 30);
   // Repeat the texture to fill everything, and keep the same sizes in this case.
   const texture = loader.load('img/leave-texture.jpg');
   texture.wrapS = THREE.RepeatWrapping;
@@ -706,9 +728,9 @@ function buildTreeLeavesRandom() {
   // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
   let leaves = new THREE.Mesh(geometry, material);
-  leaves.position.y = Math.floor(Math.random() * 260) * randomSign();
-  leaves.position.x = Math.floor(Math.random() * 260) * randomSign();
-  leaves.position.z = Math.floor(Math.random() * 180) * randomSign();
+  leaves.position.y = Math.floor(Math.random() * 260 / 30) * randomSign();
+  leaves.position.x = Math.floor(Math.random() * 260 / 30) * randomSign();
+  leaves.position.z = Math.floor(Math.random() * 180 / 30) * randomSign();
   leaves.castShadow = true;
   leaves.receiveShadow = true;
   return leaves;
