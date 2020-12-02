@@ -636,9 +636,6 @@ function addLamppostLight() {
   spotLight.shadow.camera.fov = 35;
 
   scene.add( spotLight );
-
-  const spotLightHelper = new THREE.SpotLightHelper( spotLight );
-  scene.add( spotLightHelper );
 }
 
 /*
