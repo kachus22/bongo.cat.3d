@@ -1,14 +1,6 @@
 // Detect if WebGL is supported
 if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize( window.innerWidth, window.innerHeight );
-}
-window.addEventListener( 'resize', onWindowResize, false );
-
 // Vector for motion
 const ARMS_SPEED = 0.45;
 var armsMovement = [ -ARMS_SPEED, -ARMS_SPEED ]
@@ -128,7 +120,7 @@ function init() {
   sphere.visible = false;
   scene.add( sphere );
 
-  setPositions();
+  buildObjects();
 
   // RENDERER
   // Create the Three.js renderer and attach it to our canvas
@@ -163,21 +155,76 @@ function init() {
   controls.update();
 }
 
-function scaleObject(object) {
-  object.scale.x = 30
-  object.scale.y = 30
-  object.scale.z = 30
+/*
+ * ANIMATION AND RENDER
+ * Functions used animate and render the scene.
+ */
+
+// Function to let the animations work correctly.
+function animate() {
+  // Do the animation each frame.
+  requestAnimationFrame( animate );
+  // Render the scene.
+  render();
+  // Show stats if they are enabled (Debugging purpouses).
+  if ( statsEnabled ) stats.update();
 }
 
-function setPositions() {
+// Function to render the scene
+function render() {
+  sphere.position.copy( ballPosition );
+  camera.lookAt( scene.position );
+  // Handle arm0 movement.
+  movement(0);
+  // Handle arm1 movement.
+  movement(1);
+  // Render the scene.
+  renderer.render( scene, camera );
+}
+
+// Helper function to do the movement of an arm;
+function movement(index) {
+  const lowerPosition = Math.PI * 0.5;
+  const upperPosition = 0.4;
+
+  // Move the arm by incrementing (positively or negatively) the rotation in the X axis,
+  // until it reaches the limit established.
+  if(arms[index].rotation.x <= lowerPosition && arms[index].rotation.x >= upperPosition) {
+    arms[index].rotation.x += armsMovement[index];
+  }
+
+  // Once it reaches below the limit established keep it there no matter what.
+  if(arms[index].rotation.x < upperPosition) {
+    arms[index].rotation.x = upperPosition;
+  } else if(arms[index].rotation.x > lowerPosition) {
+    arms[index].rotation.x = lowerPosition;
+  }
+}
+
+/*
+ * BUILD
+ * Functions used to build the objects and do any transformations required
+ * to fit the entire scene.
+ */
+
+// Function to create each object to be used in the scene.
+function buildObjects() {
   buildGround();
   buildCat();
   buildTable();
   buildBongos();
+  transformObjects();
+  buildTrees();
+}
 
-  scaleObject(table);
-  scaleObject(cat);
-  scaleObject(bongos);
+// Function to transform each object to be used in the scene,
+// accordingly to its special needs.
+// Translates all the objects in the right position.
+// Scales all the objects to look in a good size due the camera distance.
+function transformObjects() {
+  scaleObject(table, 30);
+  scaleObject(cat, 30);
+  scaleObject(bongos, 30);
   scene.add(table);
   scene.add(cat);
   scene.add(bongos);
@@ -185,46 +232,21 @@ function setPositions() {
   bongos.position.y = -40;
   table.position.y = -140;
   table.position.z = 310;
-  buildTrees();
 }
 
-// For future usage, let the animations work.
-function animate() {
-  requestAnimationFrame( animate );
-  render();
-  if ( statsEnabled ) stats.update();
+// Helper function to scale an object by an amount;
+function scaleObject(object, amount) {
+  object.scale.x = amount;
+  object.scale.y = amount;
+  object.scale.z = amount;
 }
 
-// Render the scene
-function render() {
-  sphere.position.copy( ballPosition );
-  // For future reference, to move the camera position based on the mouse position.
-  // camera.position.x += ( mouseX - camera.position.x ) * .005;
-  // camera.position.y += ( - mouseY - camera.position.y ) * .005;
-  camera.lookAt( scene.position );
-  // controls.update();
-  // console.log(camera.position);
-  // arms[0].rotation.x = Math.PI * 0.5;
-  
-  movement(0);
-  movement(1);
 
-  renderer.render( scene, camera );
-}
-
-function movement(index) {
-  if(arms[index].rotation.x <= Math.PI * 0.5 && arms[index].rotation.x >= 0.4) {
-    arms[index].rotation.x += armsMovement[index];
-  }
-
-  if(arms[index].rotation.x < 0.4) {
-    arms[index].rotation.x = 0.4;
-  } else if(arms[index].rotation.x > Math.PI * 0.5) {
-    arms[index].rotation.x = Math.PI * 0.5 ;
-  }
-}
+/*
+ * CAT
+ * Functions used to create the cat. These are used only with primitive figures and pure color.
+ */
       
-
 function buildCat() { 
   cat = new THREE.Object3D();
   buildBody();
@@ -463,11 +485,21 @@ function buildSmile() {
   cat.add(smile);
 }
 
+/*
+ * TABLE
+ * Functions used to create a table. These use texture to make it more realistic.
+ */
+
+// Function to build the table.
+// Using a box geometries as its base.
 function buildTable() {
   const geometry = new THREE.BoxGeometry(20, 10, 0.8);
+  // Add a wood texture.
   const texture = loader.load('img/wood-texture.jpg');
+  // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
   table = new THREE.Mesh(geometry, material);
+  // Set it in the right position to be in front of the cat.
   table.position.set( 0, -3.36, 11);
   table.rotation.x = Math.PI * 0.5;
   table.castShadow = true;
@@ -475,42 +507,61 @@ function buildTable() {
   buildTableLegs();
 }
 
+// Function to build the table legs.
+// Using a box geometries as its base.
 function buildTableLegs() {
   const geometry = new THREE.BoxGeometry(10, 3.2, 1);
+  // Add a wood texture.
   const texture = loader.load('img/wood-texture.jpg');
+  // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
-  // const material = new THREE.MeshPhongMaterial({ color: 'purple' });
   const leg = new THREE.Mesh(geometry, material);
+  // Set it in the one side of the table.
   leg.position.set( 9, 0, 2);
   leg.rotation.x = Math.PI * 0.5;
   leg.rotation.y = Math.PI * 0.5;
   leg.castShadow = true;
   leg.receiveShadow = true;
+  // Clone the object and reposition it in it's X component.
   const leg1 = leg.clone();
   leg1.position.x = -9;
   table.add(leg);
   table.add(leg1);
 }
 
+/*
+ * BONGOS
+ * Functions used to create bongos. These use texture to make it more realistic.
+ */
+
+// Function to build the bongos.
+// Using a cylinder geometry as its base.
 function buildBongos() {
+  // Create an object that's going to hold all the geometries required to build the bongo.
   bongos = new THREE.Object3D();
   const x = -3;
   const y = -1.45;
   const z = 8;
   const geometry = new THREE.CylinderGeometry( 2, 1.6, 3, 32 );
+  // Use a texture for the top and reposition the center for easier manipulation.
   const topTexture = loader.load('img/bongo-texture-top.png');
   topTexture.center = new THREE.Vector2(0.5, 0.5);
+  // Rotate this texture to fit its purpouse and point to the correct angle.
   topTexture.rotation = -Math.PI * 0.5;
+  // Load textures for the side of the cylinder and wrap it.
+  // The bottom is not shown so it has a random wood texture.
   const sidesTexture = loader.load('img/bongo-texture-sides.jpg');
   const materials = [
     new THREE.MeshPhongMaterial( { map: sidesTexture, bumpMap: sidesTexture, bumpScale: 1 } ),
     new THREE.MeshPhongMaterial( { map: topTexture, bumpMap: topTexture, bumpScale: 1  } ),
     new THREE.MeshPhongMaterial({map: loader.load('img/wood-texture.jpg')})
   ]
+  // Create a bongo and set it's position and other values.
   const bongo1 = new THREE.Mesh( geometry, materials );
   bongo1.position.set( x, y, z);
   bongo1.receiveShadow = true;
   bongo1.castShadow = true;
+  // Clone the object and reposition it in it's X component.
   const bongo2 = bongo1.clone();
   bongo2.position.x = -x;
   bongos.add( bongo1 );
@@ -518,16 +569,28 @@ function buildBongos() {
   buildBongosBridge();
 }
 
+// Function to build the thingy that connects the bongos.
+// Using a box geometry as its base.
 function buildBongosBridge() {
   const geometry = new THREE.BoxGeometry(4, 1, 1);
+  // Add the texture
   const texture = loader.load('img/bongo-texture-connection.png');
+  // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial({ map: texture, bumpMap: texture, bumpScale: 1, side: THREE.DoubleSide });
   const bridge = new THREE.Mesh(geometry, material);
+  // Position it right in the middle of the bongos.
   bridge.position.set( 0, -1.3, 8);
   bongos.add( bridge );
 }
 
+/*
+ * GROUND
+ * Functions used to create the ground. This use texture and is placed to cover the entire XY space.
+ */
+
+// Function to build the ground.
 function buildGround() {
+  // Repeat the texture to fill everything, and repeat it multiple times to fit better.
   const texture = loader.load( 'img/grass-texture.jpg' );
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set( 25, 25 );
@@ -541,9 +604,19 @@ function buildGround() {
   scene.add( ground );
 }
 
+/*
+ * TREES
+ * Functions used to create trees. These use texture and are randomly (position and geometry) created .
+ */
+
+// Function to build trees (aka. forest) randomly.
+// Uses ranges to determine where each tree is going to be positioned.
+// The ranges only include X and Z, so the log is essentially the same height 
+// and stays at ground level.
 function buildTrees() {
+  // Generate a random number to determine the amount of trees.
   const treesToAdd = Math.floor(Math.random() * 8) + 4;
-  // const treesToAdd = 1;
+  // Generate trees to the left of the screen (cat's right side);
   for( let i = 0; i <= treesToAdd; i++) {
     let newTree = buildTree();
     let randomX = -1 * (Math.floor(Math.random() * 2000) + 800);
@@ -564,7 +637,8 @@ function buildTrees() {
     scene.add(newTree);
   }
 
-  for( let i = 0; i <= treesToAdd/2; i++) {
+  // Generate trees behind the cat
+  for( let i = 0; i <= treesToAdd / 2; i++) {
     let newTree = buildTree();
     let randomX = (Math.floor(Math.random() * 1000) + 400);
     let randomZ = (Math.floor(Math.random() * 2000) + 1000) * -1;
@@ -575,12 +649,16 @@ function buildTrees() {
   }
 }
 
+ // Function to build a tree.
+ // Using a box geometry as its base.
 function buildTree() {
   const geometry = new THREE.BoxGeometry(220, 800, 180);
+  // Repeat the texture to fill everything, and repeat it in the Y component to make it look better.
   const texture = loader.load('img/tree-texture.jpg');
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set( 1, 4 );
+  // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 0.8 } );
   let tree = new THREE.Mesh(geometry, material);
   tree.castShadow = true;
@@ -590,12 +668,16 @@ function buildTree() {
   return tree;
 }
 
+// Function to build a tree's leaves.
+// Using a box geometry as the base on top of the tree log.
 function buildTreeLeaves() {
   const geometry = new THREE.BoxGeometry(520, 500, 380);
+  // Repeat the texture to fill everything, and keep the same sizes in this case.
   const texture = loader.load('img/leave-texture.jpg');
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set( 1, 1 );
+  // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
   let leaves = new THREE.Mesh(geometry, material);
   leaves.position.y = 380;
@@ -608,15 +690,20 @@ function buildTreeLeaves() {
   return leaves;
 }
 
+// Function to build a tree's leaves randomly.
+// Using a box geometry that's between some ranges depending on the component.
+// This way each tree is unique in a way.
 function buildTreeLeavesRandom() {
   let randomX = Math.floor(Math.random() * 300) + 100;
   let randomY = Math.floor(Math.random() * 400) + 250;
   let randomZ = Math.floor(Math.random() * 400) + 200;
   const geometry = new THREE.BoxGeometry(randomX, randomY, randomZ);
+  // Repeat the texture to fill everything, and keep the same sizes in this case.
   const texture = loader.load('img/leave-texture.jpg');
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set( 1, 1 );
+  // Add a bump map to be a little more realistic, not required.
   const material = new THREE.MeshPhongMaterial( { map: texture, bumpMap: texture, bumpScale: 1 } );
   let leaves = new THREE.Mesh(geometry, material);
   leaves.position.y = Math.floor(Math.random() * 260) * randomSign();
@@ -627,9 +714,15 @@ function buildTreeLeavesRandom() {
   return leaves;
 }
 
+// Helper function to get a random sign, either positive or negative.
 function randomSign() {
   return -1 + Math.round(Math.random()) * 2;
 }
+
+/*
+ * SOUNDS
+ * Functions used for everything related to sound effects.
+ */
 
 // Function to play bongo 0 sound.
 function playBongo0() {
@@ -667,6 +760,13 @@ function stopBongo1() {
   });
 }
 
+
+
+/*
+ * LISTENERS
+ * Functions used for listeners to generate some kind of output or interaction.
+ */
+
 // Function to handle keyboard events.
 // Specifically when the key is pressed
 function handleKeyDown(event) {
@@ -694,5 +794,15 @@ function handleKeyUp(event) {
   }
 }
 
+// Function to detect if the window was resized to reset
+// sizes depending on the new window.
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
 window.addEventListener('keydown', handleKeyDown, false);
 window.addEventListener('keyup', handleKeyUp, false);
+window.addEventListener( 'resize', onWindowResize, false );
