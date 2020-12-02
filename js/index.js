@@ -97,7 +97,9 @@ function init() {
 
   // CONTROLS
   controls = new THREE.OrbitControls( camera, renderer.domElement );
+  // Set the target Y component a bit high, so it looks more directly into the cat's body.
   controls.target.set( 0, 0.5, 0 );
+  // Leave the camera as smooth as possible without adding anything else.
   controls.enablePan = false;
   controls.enableDamping = false;
   controls.maxPolarAngle = Math.PI * 0.5;
@@ -232,13 +234,16 @@ function buildBody() {
 
 function buildEars() {
   ears = [];
+  // Using cones for the ears.
   const geometry = new THREE.ConeGeometry( 1.2, 1.3, 32, true );
   const material = new THREE.MeshLambertMaterial( { color: CAT_COLOR } );
   ears.push( new THREE.Mesh( geometry, material ) );
+  // Set the ear at the perfect spot.
   ears[0].position.set(-2.7, 6.1, 0);
   ears[0].rotation.z = 0.4;
   // ears[0].receiveShadow = true;
   ears[0].castShadow = true;
+  // After cloning the ear set it to the other side.
   ears.push( ears[0].clone() )
   ears[1].position.set(2.7, 6.1, 0);
   ears[1].rotation.z = -0.42;
@@ -247,6 +252,7 @@ function buildEars() {
 }
 
 function buildLimb() {
+  // Using cylinders for arms and legs.
   const geometry = new THREE.CylinderGeometry( 1.2, 1.6, 4, 32 );
   const material = new THREE.MeshLambertMaterial( { color: CAT_COLOR } );
   const sleeve = new THREE.Mesh( geometry, material );
@@ -256,6 +262,7 @@ function buildLimb() {
 }
 
 function buildLimbSmallEnd() {
+  // A half sphere to be used to close the limb.
   const geometry = new THREE.SphereGeometry( 1.2, 32, 32, 0, Math.PI );
   const material = new THREE.MeshLambertMaterial( { color: CAT_COLOR } );
   const hand = new THREE.Mesh( geometry, material );
@@ -267,6 +274,7 @@ function buildLimbSmallEnd() {
 }
 
 function buildLimbBigEnd() {
+   // A half sphere to be used to close the limb.
   const geometry = new THREE.SphereGeometry( 1.6, 32, 32, 0, Math.PI );
   const material = new THREE.MeshLambertMaterial( { color: CAT_COLOR } );
   const elbow = new THREE.Mesh( geometry, material );
@@ -278,6 +286,7 @@ function buildLimbBigEnd() {
 }
 
 function buildPaws() {
+  // Encapsulte all the geometry for a paw inside a 3D object.
   const paws = [ new THREE.Object3D(), new THREE.Object3D() ];
   let geometry = new THREE.SphereGeometry( 0.55, 32, 32, 0, Math.PI );
   const material = new THREE.MeshLambertMaterial( { color: PAWS_COLOR, side: THREE.DoubleSide } );
@@ -287,6 +296,7 @@ function buildPaws() {
   paws[0].add( sphere );
   // paws[0].receiveShadow = true;
   paws[0].castShadow = true;
+  // Make each part with different dimensions to make it look less symetrical.
   geometry = new THREE.SphereGeometry( 0.35, 32, 32, 0, Math.PI );
   sphere = new THREE.Mesh( geometry, material );
   sphere.position.set(0, 2.7, 0.7);
@@ -309,6 +319,7 @@ function buildPaws() {
 }
 
 function buildPawsBottom() {
+  // Encapsulte all the geometry for a paw inside a 3D object.
   const paws = [ new THREE.Object3D(), new THREE.Object3D() ];
   let geometry = new THREE.SphereGeometry( 1, 32, 32, 0, Math.PI );
   const material = new THREE.MeshLambertMaterial( { color: PAWS_COLOR, side: THREE.DoubleSide } );
@@ -319,6 +330,7 @@ function buildPawsBottom() {
   paws[0].add( sphere );
   // paws[0].receiveShadow = true;
   paws[0].castShadow = true;
+  // Make each part with different dimensions to make it look less symetrical.
   geometry = new THREE.SphereGeometry( 0.65, 32, 32, 0, Math.PI );
   sphere = new THREE.Mesh( geometry, material );
   sphere.position.set(0, -2.90, 0.42);
@@ -344,6 +356,8 @@ function buildPawsBottom() {
 }
 
 function buildArms() {
+  // Wrap all the parts for an arm in a 3D object, 
+  // so it can be manipulated togheter later.
   const x = 4;
   const y = 1;
   const z = 2.5;
@@ -361,6 +375,9 @@ function buildArms() {
   arms[0].add( paws[0] );
   arms[0].scale.z = 0.8;
   arms[0].scale.y = 1;
+  // Given that to move an arm the pivot to rotate it should be at the top of it,
+  // instead of doing a composed transformation at once, first we move the parts from
+  // the center, so when it rotates it's from the top.
   arms[0].children.map((x) => {
     x.position.y += 2;
   });
@@ -372,6 +389,8 @@ function buildArms() {
 }
 
 function buildLegs() {
+  // Wrap all the parts for a leg in a 3D object, 
+  // so it can be manipulated togheter later.
   const x = 3.5;
   const y = -5.5;
   const z = 4.5;
@@ -389,6 +408,9 @@ function buildLegs() {
   legs[0].add( paws[0] );
   legs[0].scale.z = 1;
   legs[0].scale.y = 1;
+  // Given that to move a leg the pivot to rotate it should be at the top of it,
+  // instead of doing a composed transformation at once, first we move the parts from
+  // the center, so when it rotates it's from the bottom.
   legs[0].children.map((x) => {
     x.position.y += 2;
   });
@@ -400,6 +422,7 @@ function buildLegs() {
 }
 
 function buildEyes() {
+  // Use half spheres for the eyes.
   const x = -1.5;
   const y = 3.5;
   const z = 4.2;
@@ -416,18 +439,26 @@ function buildEyes() {
 }
 
 function buildSmile() {
+  // Add a new object to hold every part of the smile.
   smile = new THREE.Object3D();
+  // Define the number of segments for our tube.
   const numPoints = 100;
+  // Set the initial vector from where the tube is going to be created.
   const start = new THREE.Vector3(0.48, 0, 0);
+  // Set the vector from where the curve reaches an inflection point.
+  // This is where it starts to 'bend'.
   const middle = new THREE.Vector3(0, 0.7, 0);
+ // Set the final vector from where the tube is going to end. 
   const end = new THREE.Vector3(-0.48, 0, 0);
   const path = new THREE.QuadraticBezierCurve3(start, middle, end);
   const tube = new THREE.TubeGeometry(path, numPoints, 0.1, 10, false);
   const material = new THREE.MeshLambertMaterial( { color: 0x00000 } );
   const side1 = new THREE.Mesh(tube, material);
+  // Transform it so it sits correctly in the cat.
   side1.position.set( -0.45, 3.5, 4.7);
   side1.rotation.x = -0.6;
   side1.rotation.z = Math.PI;
+  // Create a clone so the smile can be completed.
   const side2 = side1.clone();
   side2.position.x = 0.45;
   smile.add(side1);
@@ -540,10 +571,16 @@ function buildBongosBridge() {
  */
 
 function buildLamppost() {
+  // Add a new object to hold every part of the smile.
   lamppost = new THREE.Object3D();
+  // Define the number of segments for our tube.
   const numPoints = 100;
+  // Set the initial vector from where the tube is going to be created.
   const start = new THREE.Vector3(0, -10, 0);
+  // Set the vector from where the curve reaches an inflection point.
+  // This is where it starts to 'bend'.
   const middle = new THREE.Vector3(0, 60, 0);
+  // Set the final vector from where the tube is going to end. 
   const end = new THREE.Vector3(-15, 30, 0);
   const path = new THREE.QuadraticBezierCurve3(start, middle, end);
   const tube = new THREE.TubeGeometry(path, numPoints, 0.75, 20, false);
