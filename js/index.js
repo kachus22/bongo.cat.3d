@@ -611,12 +611,11 @@ function buildLamppostTop() {
 
 function buildLamppostBulb() {
   const geometry = new THREE.SphereGeometry( 2, 32, 32, -Math.PI * 0.5, Math.PI );
-  const material = new THREE.MeshLambertMaterial( { color: 0xFFFFFF } );
+  const material = new THREE.MeshPhongMaterial( { color: 0xffff00 } );
   // Create the top and set it's position and other values.
   const bulb = new THREE.Mesh( geometry, material );
   bulb.rotation.z = Math.PI * 0.32;
   bulb.position.set( -15.3, 28.9, 0);
-  bulb.receiveShadow = true;
   bulb.castShadow = true;
   lamppost.add(bulb);
   addLamppostLight();
@@ -625,7 +624,7 @@ function buildLamppostBulb() {
 function addLamppostLight() {
   // Add a yellow light, with intensity a bit low intensity,
   // that only covers a small radius and a bit attenuated due to penumbra.
-  const spotLight = new THREE.SpotLight( 0xfcdb03, 0.9, 0, Math.PI * 0.13, 0.2 );
+  const spotLight = new THREE.SpotLight( 0xfcdb03, 0.95, 0, Math.PI * 0.13, 0.2 );
   spotLight.position.set( 55, 145, 0 );
 
   spotLight.castShadow = true;
@@ -650,7 +649,6 @@ function buildGround() {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set( 25, 25 );
   texture.anisotropy = 16;
-  texture.encoding = THREE.BasicDepthPacking;
   const material = new THREE.MeshLambertMaterial( { map: texture } );
   let ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 3000, 3000 ), material );
   ground.position.y = - 35;
